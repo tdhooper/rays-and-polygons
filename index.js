@@ -10,10 +10,6 @@ const camera = createCamera(regl._gl.canvas, {
   position: [0, 0, 5],
 });
 
-var gl = regl._gl;
-console.log(gl.getParameter(gl.DEPTH_RANGE));
-console.log(gl.depthRange(0, 1));
-
 const setup = regl({
   uniforms: {
     projection: ({ viewportWidth, viewportHeight }) => mat4.perspective(
@@ -63,18 +59,18 @@ const drawRaymarch = regl({
   vert: `
     precision mediump float;
     attribute vec2 position;
-    uniform vec2 resolution;
     uniform mat4 projection;
     uniform mat4 view;
     varying vec3 eye;
     varying vec3 dir;
     varying vec3 cameraForward;
+
     void main() {
       vec2 vertex = 2.0 * position - 1.0;
       gl_Position = vec4(vertex, 0, 1);
 
       float fov = 1. / projection[1].y;
-      float aspect = resolution.x / resolution.y;
+      float aspect = projection[1].y / projection[0].x;
       eye = -(view[3].xyz) * mat3(view);
       dir = vec3(vertex.x * fov * aspect, vertex.y * fov,-1.0) * mat3(view);
       cameraForward = vec3(0,0,-1) * mat3(view);
@@ -83,9 +79,7 @@ const drawRaymarch = regl({
   frag: `
     #extension GL_EXT_frag_depth : enable
     precision mediump float;
-    uniform vec2 resolution;
     uniform mat4 projection;
-    uniform mat4 view;
     varying vec3 eye;
     varying vec3 dir;
     varying vec3 cameraForward;
@@ -118,11 +112,6 @@ const drawRaymarch = regl({
     const float ITER = 50.;
 
     void main() {
-      // float aspect = resolution.x / resolution.y;
-      // vec2 uv = (gl_FragCoord.xy / resolution - .5) * vec2(aspect, 1);
-      // if (uv.x > 0.) {
-      //   discard;
-      // }
 
       vec3 rayOrigin = eye;
       vec3 rayDirection = normalize(dir);
@@ -144,21 +133,11 @@ const drawRaymarch = regl({
 
       float eyeHitZ = -rayLength * dot(rayDirection, cameraForward);
 
-      // vec3 zAxis = normalize(vec4(vec4(0, 0, fov, 1) * view).xyz);
-      // float z = dot(rayOrigin, zAxis) - dot(rayPosition, zAxis);
+      vec3 eyeSpace = vec3(0, 0, eyeHitZ);
+      float zc = ( projection * vec4(eyeSpace, 1)).z;
+      float wc = ( projection * vec4(eyeSpace, 1)).w;
+      float depth = (zc/wc + 1.) / 2.;
 
-      // vec3 eyeSpace = vec3(uv, eyeHitZ);
-      // float zc = ( projection * vec4(eyeSpace, 1)).z;
-      // float wc = ( projection * vec4(eyeSpace, 1)).w;
-      // float depth = zc/wc;
-
-      float zNear = 0.01;
-      float zFar = 1000.;
-
-      float ndcDepth = ((zFar + zNear) + (2. * zFar * zNear) / eyeHitZ) / (zFar - zNear);
-      float depth = (ndcDepth + 1.) / 2.;
-
-      // color = vec3(depth);
       gl_FragColor = vec4(color, 1);
       gl_FragDepthEXT = depth;
     }
@@ -173,7 +152,6 @@ const drawRaymarch = regl({
   count: 3,
   uniforms: {
     model: mat4.identity([]),
-    resolution: context => [context.viewportWidth, context.viewportHeight],
   },
 });
 
