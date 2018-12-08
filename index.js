@@ -76,7 +76,7 @@ const drawRaymarch = regl({
       float d = fBox(p, vec3(.5));
 
       p = mod(p, 1.) - .5;
-      d = min(d, length(p) - .02);
+      d = min(d, length(p) - .04);
       return d;
     }
 
