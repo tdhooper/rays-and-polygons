@@ -1,11 +1,12 @@
 const regl = require('regl')();
-const createCamera = require('canvas-orbit-camera');
 const { mat4 } = require('gl-matrix');
 const createCube = require('primitive-cube');
+const createCamera = require('./camera');
 
 
-const camera = createCamera(regl._gl.canvas);
-camera.distance = 5;
+const camera = createCamera(regl._gl.canvas, {
+  position: [0, 0, 5],
+});
 
 const setup = regl({
   uniforms: {
